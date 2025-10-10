@@ -1,7 +1,8 @@
+import { createContext, useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initialSignInFormData, initialSignUpFormData } from "@/config";
 import { checkAuthService, loginService, registerService } from "@/services";
-import { createContext, useEffect, useState } from "react";
+import toast from "react-hot-toast"; // Import toast
 
 export const AuthContext = createContext(null);
 
@@ -16,32 +17,55 @@ export default function AuthProvider({ children }) {
 
   async function handleRegisterUser(event) {
     event.preventDefault();
-    const data = await registerService(signUpFormData);
+    const loadingToastId = toast.loading("Creating account...");
+
+    try {
+      const data = await registerService(signUpFormData);
+
+      if (data.success) {
+        toast.dismiss(loadingToastId);
+        toast.success("Account created! Please sign in.");
+        // Consider resetting the form or switching the tab for the user
+      } else {
+        toast.dismiss(loadingToastId);
+        toast.error(data.message || "An unknown error occurred during registration.");
+      }
+    } catch (error) {
+      console.error("Registration failed:", error);
+      toast.dismiss(loadingToastId);
+      toast.error(error.response?.data?.message || "Registration failed. Please try again.");
+    }
   }
 
   async function handleLoginUser(event) {
     event.preventDefault();
-    const data = await loginService(signInFormData);
-    console.log(data, "datadatadatadatadata");
+    const loadingToastId = toast.loading("Signing in...");
 
-    if (data.success) {
-      sessionStorage.setItem(
-        "accessToken",
-        JSON.stringify(data.data.accessToken)
-      );
-      setAuth({
-        authenticate: true,
-        user: data.data.user,
-      });
-    } else {
-      setAuth({
-        authenticate: false,
-        user: null,
-      });
+    try {
+      const data = await loginService(signInFormData);
+
+      if (data.success) {
+        toast.dismiss(loadingToastId);
+        toast.success("Successfully logged in!");
+
+        sessionStorage.setItem(
+          "accessToken",
+          JSON.stringify(data.data.accessToken)
+        );
+        setAuth({
+          authenticate: true,
+          user: data.data.user,
+        });
+      } else {
+        toast.dismiss(loadingToastId);
+        toast.error(data.message || "An unknown error occurred during login.");
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast.dismiss(loadingToastId);
+      toast.error(error.response?.data?.message || "Invalid email or password.");
     }
   }
-
-  //check auth user
 
   async function checkAuthUser() {
     try {
@@ -51,23 +75,20 @@ export default function AuthProvider({ children }) {
           authenticate: true,
           user: data.data.user,
         });
-        setLoading(false);
       } else {
         setAuth({
           authenticate: false,
           user: null,
         });
-        setLoading(false);
       }
     } catch (error) {
       console.log(error);
-      if (!error?.response?.data?.success) {
-        setAuth({
-          authenticate: false,
-          user: null,
-        });
-        setLoading(false);
-      }
+      setAuth({
+        authenticate: false,
+        user: null,
+      });
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -76,13 +97,12 @@ export default function AuthProvider({ children }) {
       authenticate: false,
       user: null,
     });
+    sessionStorage.removeItem("accessToken");
   }
 
   useEffect(() => {
     checkAuthUser();
   }, []);
-
-  console.log(auth, "gf");
 
   return (
     <AuthContext.Provider

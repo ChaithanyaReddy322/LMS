@@ -58,7 +58,7 @@ function StudentHomePage() {
         <div className="lg:w-1/2 lg:pr-12">
           <h1 className="text-4xl font-bold mb-4">Learning thet gets you</h1>
           <p className="text-xl">
-            Skills for your present and your future. Get Started with US
+            Skills for your present and your future. Get Started with us
           </p>
         </div>
         <div className="lg:w-full mb-8 lg:mb-0">
